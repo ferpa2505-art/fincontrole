@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, viewport-fit=cover">
+<meta name="theme-color" content="#1F4D3D">
+<title>FinControle</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Atkinson+Hyperlegible+Next:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="classico">
+
+<div id="app">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-brand">
+      <img src="icons/icon-192.png" alt="" class="brand-icon">
+      <div>
+        <div class="brand-name">FinControle</div>
+        <div class="brand-date" id="headerDate">—</div>
+      </div>
+    </div>
+    <button class="icon-btn" id="btnSettingsShortcut" aria-label="Ajustes" data-i18n-aria="aria.settings">
+      <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M19.14 12.94a7.14 7.14 0 000-1.88l2.03-1.58a.5.5 0 00.12-.64l-1.92-3.32a.5.5 0 00-.6-.22l-2.39.96a7.3 7.3 0 00-1.63-.94l-.36-2.54a.5.5 0 00-.5-.42h-3.84a.5.5 0 00-.5.42l-.36 2.54c-.59.24-1.14.56-1.63.94l-2.39-.96a.5.5 0 00-.6.22L2.7 8.84a.5.5 0 00.12.64l2.03 1.58a7.14 7.14 0 000 1.88l-2.03 1.58a.5.5 0 00-.12.64l1.92 3.32c.14.24.42.32.6.22l2.39-.96c.49.38 1.04.7 1.63.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.59-.24 1.14-.56 1.63-.94l2.39.96c.24.1.5 0 .6-.22l1.92-3.32a.5.5 0 00-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1112 8.5a3.5 3.5 0 010 7z"/></svg>
+    </button>
+  </header>
+
+  <!-- REMINDER BANNER -->
+  <div id="reminderBanner" class="reminder-banner hidden"></div>
+
+  <!-- COTAÇÕES -->
+  <div class="rates-bar" id="ratesBar">
+    <div class="rate-item">
+      <span class="rate-label" data-i18n="rates.dollar">Dólar</span>
+      <span class="rate-value" id="rateUSDValue">—</span>
+      <span class="rate-arrow" id="rateUSDArrow"></span>
+    </div>
+    <div class="rate-item">
+      <span class="rate-label" data-i18n="rates.euro">Euro</span>
+      <span class="rate-value" id="rateEURValue">—</span>
+      <span class="rate-arrow" id="rateEURArrow"></span>
+    </div>
+    <button class="rate-refresh" id="btnRefreshRates" aria-label="Atualizar cotações" data-i18n-aria="rates.refreshAria">⟳</button>
+  </div>
+  <div class="rates-caption" id="ratesCaption"></div>
+
+  <main id="main">
+
+    <!-- INÍCIO -->
+    <section id="view-inicio" class="view">
+      <div class="month-switch">
+        <button class="round-btn" id="homePrevMonth" aria-label="Mês anterior">‹</button>
+        <div class="month-label" id="homeMonthLabel">—</div>
+        <button class="round-btn" id="homeNextMonth" aria-label="Próximo mês">›</button>
+      </div>
+
+      <div class="balance-cards">
+        <div class="balance-card balance-main">
+          <div class="balance-label" data-i18n="home.monthBalance">Saldo do mês (confirmado)</div>
+          <div class="balance-value" id="monthBalanceValue">R$ 0,00</div>
+          <div class="balance-sub" id="monthProjectedValue"></div>
+        </div>
+        <div class="balance-card balance-accum">
+          <div class="balance-label" data-i18n="home.accumulated">Saldo acumulado</div>
+          <div class="balance-value" id="accumulatedValue">R$ 0,00</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h2 class="section-title chart-title" data-i18n="chart.title">Entradas x Saídas</h2>
+
+        <div class="date-range-row">
+          <div class="date-field">
+            <label data-i18n="chart.from">De</label>
+            <input type="date" id="chartStartDate" class="big-input compact">
+          </div>
+          <div class="date-field">
+            <label data-i18n="chart.to">Até</label>
+            <input type="date" id="chartEndDate" class="big-input compact">
+          </div>
+        </div>
+
+        <div class="account-chips" id="chartAccountChips"></div>
+
+        <div class="chart-visual" id="chartVisual"></div>
+        <div class="chart-period-balance" id="chartPeriodBalance"></div>
+      </div>
+
+      <button class="primary-btn full-width" id="btnNewTransactionHome">
+        <span class="plus">+</span> <span data-i18n="home.newEntry">Novo lançamento</span>
+      </button>
+
+      <h2 class="section-title" data-i18n="home.today">Hoje</h2>
+      <ul class="entry-list" id="todayList"></ul>
+
+      <h2 class="section-title" data-i18n="home.upcoming">Próximos dias</h2>
+      <ul class="entry-list" id="upcomingList"></ul>
+    </section>
+
+    <!-- FLUXO DE CAIXA -->
+    <section id="view-fluxo" class="view hidden">
+      <div class="month-switch">
+        <button class="round-btn" id="fluxoPrevMonth" aria-label="Mês anterior">‹</button>
+        <div class="month-label" id="fluxoMonthLabel">—</div>
+        <button class="round-btn" id="fluxoNextMonth" aria-label="Próximo mês">›</button>
+      </div>
+
+      <div class="totals-row">
+        <div class="totals-box income">
+          <div class="totals-label" data-i18n="flow.income">Entradas</div>
+          <div class="totals-value" id="fluxoIncomeTotal">R$ 0,00</div>
+        </div>
+        <div class="totals-box expense">
+          <div class="totals-label" data-i18n="flow.expense">Saídas</div>
+          <div class="totals-value" id="fluxoExpenseTotal">R$ 0,00</div>
+        </div>
+        <div class="totals-box balance">
+          <div class="totals-label" data-i18n="flow.balance">Saldo</div>
+          <div class="totals-value" id="fluxoBalanceTotal">R$ 0,00</div>
+        </div>
+      </div>
+
+      <button class="primary-btn full-width" id="btnNewTransactionFlow">
+        <span class="plus">+</span> <span data-i18n="home.newEntry">Novo lançamento</span>
+      </button>
+
+      <ul class="entry-list" id="fluxoList"></ul>
+    </section>
+
+    <!-- CONTAS -->
+    <section id="view-contas" class="view hidden">
+      <h2 class="section-title" data-i18n="accounts.title">Minhas contas</h2>
+      <button class="primary-btn full-width" id="btnNewAccount">
+        <span class="plus">+</span> <span data-i18n="accounts.new">Nova conta</span>
+      </button>
+      <ul class="account-list" id="accountList"></ul>
+    </section>
+
+    <!-- AJUSTES -->
+    <section id="view-ajustes" class="view hidden">
+      <h2 class="section-title" data-i18n="settings.title">Ajustes</h2>
+
+      <div class="settings-card" id="lockSettingsCard"></div>
+
+      <div class="settings-card">
+        <label class="settings-label" data-i18n="settings.language">Idioma</label>
+        <select id="selectLanguage" class="big-select">
+          <option value="pt-BR">Português (Brasil)</option>
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+
+      <div class="settings-card">
+        <label class="settings-label" data-i18n="settings.theme">Tema de cores</label>
+        <div class="theme-grid" id="themeGrid"></div>
+      </div>
+
+      <div class="settings-card">
+        <label class="settings-label" data-i18n="settings.fontSize">Tamanho do texto</label>
+        <div class="font-size-row">
+          <button class="round-btn" id="btnFontSmaller">A-</button>
+          <span id="fontSizeLabel">100%</span>
+          <button class="round-btn" id="btnFontBigger">A+</button>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <label class="settings-label" data-i18n="settings.notifications">Lembretes</label>
+        <button class="secondary-btn full-width" id="btnEnableNotifications" data-i18n="settings.enableNotifications">Ativar lembretes por notificação</button>
+        <p class="hint-text" id="notifStatusText"></p>
+      </div>
+
+      <div class="settings-card">
+        <label class="settings-label" data-i18n="settings.backup">Backup dos dados</label>
+        <button class="secondary-btn full-width" id="btnExportBackup" data-i18n="settings.exportBackup">Exportar backup (salvar arquivo)</button>
+        <button class="secondary-btn full-width" id="btnImportBackup" data-i18n="settings.importBackup">Importar backup</button>
+        <input type="file" id="fileImportBackup" accept="application/json" class="hidden">
+        <p class="hint-text" data-i18n="settings.backupHint">Guarde o arquivo de backup em local seguro. Ele é a única forma de recuperar seus dados se trocar de celular.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-view="inicio">
+      <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3z"/></svg>
+      <span data-i18n="nav.home">Início</span>
+    </button>
+    <button class="nav-btn" data-view="fluxo">
+      <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M3 13h4v8H3zm7-6h4v14h-4zm7 3h4v11h-4z"/></svg>
+      <span data-i18n="nav.flow">Fluxo</span>
+    </button>
+    <button class="nav-btn" data-view="contas">
+      <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M3 7a2 2 0 012-2h11a2 2 0 012 2v1h1a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2zm14 4a2 2 0 100 4 2 2 0 000-4z"/></svg>
+      <span data-i18n="nav.accounts">Contas</span>
+    </button>
+    <button class="nav-btn" data-view="ajustes">
+      <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M19.14 12.94a7.14 7.14 0 000-1.88l2.03-1.58a.5.5 0 00.12-.64l-1.92-3.32a.5.5 0 00-.6-.22l-2.39.96a7.3 7.3 0 00-1.63-.94l-.36-2.54a.5.5 0 00-.5-.42h-3.84a.5.5 0 00-.5.42l-.36 2.54c-.59.24-1.14.56-1.63.94l-2.39-.96a.5.5 0 00-.6.22L2.7 8.84a.5.5 0 00.12.64l2.03 1.58a7.14 7.14 0 000 1.88l-2.03 1.58a.5.5 0 00-.12.64l1.92 3.32c.14.24.42.32.6.22l2.39-.96c.49.38 1.04.7 1.63.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.59-.24 1.14-.56 1.63-.94l2.39.96c.24.1.5 0 .6-.22l1.92-3.32a.5.5 0 00-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1112 8.5a3.5 3.5 0 010 7z"/></svg>
+      <span data-i18n="nav.settings">Ajustes</span>
+    </button>
+  </nav>
+</div>
+
+<!-- MODAL: Novo/Editar Lançamento -->
+<div class="modal-overlay hidden" id="modalTransaction">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalTransactionTitle" data-i18n="modal.newEntry">Novo lançamento</h3>
+      <button class="icon-btn" id="closeModalTransaction" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="type-toggle">
+        <button class="type-btn income active" id="btnTypeIncome" data-i18n="modal.income">Entrada (recebimento)</button>
+        <button class="type-btn expense" id="btnTypeExpense" data-i18n="modal.expense">Saída (pagamento)</button>
+      </div>
+
+      <label class="field-label" data-i18n="modal.description">Descrição</label>
+      <input type="text" id="fieldDescription" class="big-input" placeholder="Ex: Salário, Aluguel, Luz...">
+
+      <label class="field-label" data-i18n="modal.amount">Valor (R$)</label>
+      <input type="text" inputmode="decimal" id="fieldAmount" class="big-input" placeholder="0,00">
+
+      <label class="field-label" data-i18n="modal.account">Conta</label>
+      <select id="fieldAccount" class="big-select"></select>
+
+      <label class="field-label" data-i18n="modal.date">Data</label>
+      <input type="date" id="fieldDate" class="big-input">
+
+      <label class="field-label" data-i18n="modal.frequency">Frequência</label>
+      <select id="fieldFrequency" class="big-select">
+        <option value="once" data-i18n="freq.once">Não se repete</option>
+        <option value="daily" data-i18n="freq.daily">Repete todo dia</option>
+        <option value="weekly" data-i18n="freq.weekly">Repete toda semana</option>
+        <option value="monthly" data-i18n="freq.monthly">Repete todo mês</option>
+        <option value="yearly" data-i18n="freq.yearly">Repete todo ano</option>
+      </select>
+
+      <div id="endDateWrapper" class="hidden">
+        <label class="field-label" data-i18n="modal.endDate">Repetir até (opcional)</label>
+        <input type="date" id="fieldEndDate" class="big-input">
+      </div>
+
+      <label class="field-label" data-i18n="modal.notes">Observações (opcional)</label>
+      <textarea id="fieldNotes" class="big-input" rows="2"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="danger-btn hidden" id="btnDeleteTransaction" data-i18n="modal.delete">Excluir</button>
+      <button class="primary-btn" id="btnSaveTransaction" data-i18n="modal.save">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Confirmar / Editar ocorrência do dia -->
+<div class="modal-overlay hidden" id="modalOccurrence">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 data-i18n="modal.entryDetails">Detalhes do lançamento</h3>
+      <button class="icon-btn" id="closeModalOccurrence" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="occDetails" class="occ-details"></div>
+
+      <label class="field-label" data-i18n="modal.amount">Valor (R$)</label>
+      <input type="text" inputmode="decimal" id="occAmount" class="big-input">
+
+      <label class="field-label" data-i18n="modal.account">Conta</label>
+      <select id="occAccount" class="big-select"></select>
+    </div>
+    <div class="modal-footer occ-footer">
+      <button class="secondary-btn" id="btnEditTransactionFromOcc" data-i18n="modal.editEntry">Editar lançamento</button>
+      <button class="primary-btn" id="btnConfirmOccurrence" data-i18n="modal.confirm">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nova/Editar Conta -->
+<div class="modal-overlay hidden" id="modalAccount">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalAccountTitle" data-i18n="modal.newAccount">Nova conta</h3>
+      <button class="icon-btn" id="closeModalAccount" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label" data-i18n="modal.accountName">Nome da conta</label>
+      <input type="text" id="fieldAccountName" class="big-input" placeholder="Ex: Banco, Carteira, Poupança">
+
+      <label class="field-label" data-i18n="modal.initialBalance">Saldo inicial (R$)</label>
+      <input type="text" inputmode="decimal" id="fieldAccountInitial" class="big-input" placeholder="0,00">
+
+      <label class="field-label" data-i18n="modal.accountColor">Cor</label>
+      <div class="color-grid" id="accountColorGrid"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="danger-btn hidden" id="btnDeleteAccount" data-i18n="modal.delete">Excluir</button>
+      <button class="primary-btn" id="btnSaveAccount" data-i18n="modal.save">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm dialog genérico -->
+<div class="modal-overlay hidden" id="modalConfirm">
+  <div class="modal-box small">
+    <div class="modal-body">
+      <p id="confirmMessage" class="confirm-message"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="secondary-btn" id="btnConfirmCancel" data-i18n="modal.cancel">Cancelar</button>
+      <button class="danger-btn" id="btnConfirmOk" data-i18n="modal.delete">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<!-- TELA DE BLOQUEIO -->
+<div class="lock-overlay hidden" id="lockOverlay">
+  <div class="lock-box">
+    <img src="icons/icon-192.png" alt="" class="lock-icon">
+    <h2 data-i18n="lock.title">Digite sua senha</h2>
+    <div class="lock-dots" id="lockDots">
+      <span class="lock-dot"></span><span class="lock-dot"></span><span class="lock-dot"></span><span class="lock-dot"></span>
+    </div>
+    <button class="secondary-btn full-width hidden" id="btnBiometricUnlock" data-i18n="lock.useBiometric">Desbloquear com digital ou rosto</button>
+    <div class="lock-keypad">
+      <button class="lock-key" data-digit="1">1</button>
+      <button class="lock-key" data-digit="2">2</button>
+      <button class="lock-key" data-digit="3">3</button>
+      <button class="lock-key" data-digit="4">4</button>
+      <button class="lock-key" data-digit="5">5</button>
+      <button class="lock-key" data-digit="6">6</button>
+      <button class="lock-key" data-digit="7">7</button>
+      <button class="lock-key" data-digit="8">8</button>
+      <button class="lock-key" data-digit="9">9</button>
+      <button class="lock-key lock-key-empty" tabindex="-1"></button>
+      <button class="lock-key" data-digit="0">0</button>
+      <button class="lock-key" id="btnLockBackspace" aria-label="Apagar">⌫</button>
+    </div>
+    <button class="lock-forgot" id="btnForgotPin" data-i18n="lock.forgot">Esqueci minha senha</button>
+  </div>
+</div>
+
+<!-- MODAL: Criar/alterar senha -->
+<div class="modal-overlay hidden" id="modalSetPin">
+  <div class="modal-box small">
+    <div class="modal-header">
+      <h3 data-i18n="lock.setupTitle">Criar senha de 4 números</h3>
+      <button class="icon-btn" id="closeModalSetPin" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label" data-i18n="lock.newPin">Nova senha (4 números)</label>
+      <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" id="fieldNewPin" class="big-input" placeholder="••••">
+      <label class="field-label" data-i18n="lock.confirmPin">Confirme a nova senha</label>
+      <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" id="fieldConfirmPin" class="big-input" placeholder="••••">
+    </div>
+    <div class="modal-footer">
+      <button class="primary-btn" id="btnSavePin" data-i18n="modal.save">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
