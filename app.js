@@ -3,9 +3,11 @@
    Controle de entradas, saídas, contas e fluxo de caixa.
    Dados salvos localmente no aparelho (localStorage).
    ============================================================ */
-
 const STORAGE_KEY = 'fincontrole_data_v1';
-
+const DEFAULT_CATEGORIES = {
+  income: ['Salário', 'Freelance', 'Vendas', 'Investimentos', 'Outros'],
+  expense: ['Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Lazer', 'Educação', 'Contas', 'Outros']
+};
 /* ---------------- I18N ---------------- */
 const I18N = {
   'pt-BR': {
@@ -37,7 +39,7 @@ const I18N = {
     'settings.backupHint': 'Guarde o arquivo de backup em local seguro. É a única forma de recuperar seus dados se trocar de celular.',
     'modal.newEntry': 'Novo lançamento', 'modal.editEntryTitle': 'Editar lançamento',
     'modal.income': 'Entrada (recebimento)', 'modal.expense': 'Saída (pagamento)',
-    'modal.description': 'Descrição', 'modal.amount': 'Valor (R$)', 'modal.account': 'Conta',
+    'modal.description': 'Descrição', 'modal.invoicedTo': 'Faturado para (cliente)', 'modal.category': 'Categoria', 'modal.amount': 'Valor (R$)', 'modal.account': 'Conta',
     'modal.date': 'Data', 'modal.frequency': 'Frequência', 'modal.endDate': 'Repetir até (opcional)',
     'modal.notes': 'Observações (opcional)', 'modal.delete': 'Excluir', 'modal.save': 'Salvar',
     'modal.entryDetails': 'Detalhes do lançamento', 'modal.editEntry': 'Editar lançamento',
@@ -122,7 +124,7 @@ const I18N = {
     'settings.backupHint': 'Guarda el archivo en un lugar seguro. Es la única forma de recuperar tus datos si cambias de celular.',
     'modal.newEntry': 'Nuevo movimiento', 'modal.editEntryTitle': 'Editar movimiento',
     'modal.income': 'Ingreso (cobro)', 'modal.expense': 'Gasto (pago)',
-    'modal.description': 'Descripción', 'modal.amount': 'Valor (R$)', 'modal.account': 'Cuenta',
+    'modal.description': 'Descripción', 'modal.invoicedTo': 'Facturado a (cliente)', 'modal.category': 'Categoría', 'modal.amount': 'Valor (R$)', 'modal.account': 'Cuenta',
     'modal.date': 'Fecha', 'modal.frequency': 'Frecuencia', 'modal.endDate': 'Repetir hasta (opcional)',
     'modal.notes': 'Notas (opcional)', 'modal.delete': 'Eliminar', 'modal.save': 'Guardar',
     'modal.entryDetails': 'Detalles del movimiento', 'modal.editEntry': 'Editar movimiento',
@@ -207,7 +209,7 @@ const I18N = {
     'settings.backupHint': 'Keep the backup file somewhere safe. It is the only way to recover your data if you change phones.',
     'modal.newEntry': 'New entry', 'modal.editEntryTitle': 'Edit entry',
     'modal.income': 'Income (money in)', 'modal.expense': 'Expense (money out)',
-    'modal.description': 'Description', 'modal.amount': 'Amount (R$)', 'modal.account': 'Account',
+    'modal.description': 'Description', 'modal.invoicedTo': 'Invoiced to (client)', 'modal.category': 'Category', 'modal.amount': 'Amount (R$)', 'modal.account': 'Account',
     'modal.date': 'Date', 'modal.frequency': 'Frequency', 'modal.endDate': 'Repeat until (optional)',
     'modal.notes': 'Notes (optional)', 'modal.delete': 'Delete', 'modal.save': 'Save',
     'modal.entryDetails': 'Entry details', 'modal.editEntry': 'Edit entry',
@@ -264,7 +266,6 @@ const I18N = {
     'lock.confirmPin': 'Confirm new passcode',
   }
 };
-
 const MONTHS = {
   'pt-BR': ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'],
   'es': ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'],
@@ -276,7 +277,6 @@ const WEEKDAY_FULL = {
   'en': ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 };
 const LOCALE_MAP = { 'pt-BR': 'pt-BR', 'es': 'es-ES', 'en': 'en-US' };
-
 const THEMES = [
   { id: 'classico', swatch: ['#1F4D3D', '#C69B3D'] },
   { id: 'noite', swatch: ['#1B2531', '#E0B84B'] },
@@ -284,7 +284,6 @@ const THEMES = [
   { id: 'contraste', swatch: ['#000000', '#F5D93A'] },
 ];
 const ACCOUNT_COLORS = ['#1F4D3D','#C69B3D','#3E7CB1','#B14E4E','#6C4A85','#3D8361','#A94B33','#5B6B63','#2E6E57','#8A64A4','#E0B84B','#21302B'];
-
 /* ---------------- STATE ---------------- */
 let state = loadState();
 let ui = {
@@ -300,7 +299,6 @@ let ui = {
   chart: { start: null, end: null, accountFilter: 'all' }, // accountFilter: 'all' | [ids]
   rates: { data: null, fresh: false },
 };
-
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -311,27 +309,24 @@ function loadState() {
   } catch (e) { console.error('Erro ao carregar dados', e); }
   return defaultState();
 }
-
 function defaultState() {
   return {
     accounts: [],
     transactions: [],
     overrides: {},
+    categories: { income: [], expense: [] },
     settings: { language: detectLanguage(), theme: 'classico', fontScale: 1, notificationsEnabled: false }
   };
 }
-
 function detectLanguage() {
   const nav = (navigator.language || 'pt-BR').toLowerCase();
   if (nav.startsWith('es')) return 'es';
   if (nav.startsWith('en')) return 'en';
   return 'pt-BR';
 }
-
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
-
 function t(key, vars) {
   const lang = state.settings.language || 'pt-BR';
   let str = (I18N[lang] && I18N[lang][key]) || I18N['pt-BR'][key] || key;
@@ -340,11 +335,9 @@ function t(key, vars) {
   }
   return str;
 }
-
 function uid() {
   return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
-
 /* ---------------- DATE HELPERS ---------------- */
 function todayDate() { const d = new Date(); d.setHours(0,0,0,0); return d; }
 function todayISO() { return formatISO(todayDate()); }
@@ -360,13 +353,11 @@ function addDays(date, n) { const d = new Date(date); d.setDate(d.getDate()+n); 
 function daysInMonth(year, monthIdx0) { return new Date(year, monthIdx0+1, 0).getDate(); }
 function monthKey(date) { return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`; }
 function isSameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
-
 function getMonthLabel(date) {
   const lang = state.settings.language;
   const name = MONTHS[lang][date.getMonth()];
   return `${name} ${date.getFullYear()}`;
 }
-
 function formatCurrency(value) {
   const lang = state.settings.language || 'pt-BR';
   try {
@@ -375,7 +366,6 @@ function formatCurrency(value) {
     return 'R$ ' + (value || 0).toFixed(2);
   }
 }
-
 function parseAmountInput(str) {
   if (!str) return 0;
   let s = String(str).trim();
@@ -389,7 +379,6 @@ function parseAmountInput(str) {
   const v = parseFloat(s);
   return isNaN(v) ? 0 : v;
 }
-
 /* ---------------- RECURRENCE ENGINE ---------------- */
 // Returns array of Date objects (occurrence dates) for a transaction within [rangeStart, rangeEnd] inclusive.
 function getOccurrencesInRange(txn, rangeStart, rangeEnd) {
@@ -398,12 +387,10 @@ function getOccurrencesInRange(txn, rangeStart, rangeEnd) {
   const hardEnd = txn.endDate ? parseISO(txn.endDate) : null;
   const effectiveEnd = hardEnd && hardEnd < rangeEnd ? hardEnd : rangeEnd;
   if (txnStart > effectiveEnd) return results;
-
   if (txn.frequency === 'once') {
     if (txnStart >= rangeStart && txnStart <= effectiveEnd) results.push(new Date(txnStart));
     return results;
   }
-
   if (txn.frequency === 'daily') {
     let cur = txnStart > rangeStart ? new Date(txnStart) : new Date(rangeStart);
     while (cur <= effectiveEnd) {
@@ -412,7 +399,6 @@ function getOccurrencesInRange(txn, rangeStart, rangeEnd) {
     }
     return results;
   }
-
   if (txn.frequency === 'weekly') {
     let cur = new Date(txnStart);
     // fast-forward close to rangeStart
@@ -428,7 +414,6 @@ function getOccurrencesInRange(txn, rangeStart, rangeEnd) {
     }
     return results;
   }
-
   if (txn.frequency === 'monthly') {
     const day = txnStart.getDate();
     let cursor = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
@@ -443,7 +428,6 @@ function getOccurrencesInRange(txn, rangeStart, rangeEnd) {
     }
     return results;
   }
-
   if (txn.frequency === 'yearly') {
     const month = txnStart.getMonth(), day = txnStart.getDate();
     for (let y = rangeStart.getFullYear(); y <= effectiveEnd.getFullYear(); y++) {
@@ -455,16 +439,13 @@ function getOccurrencesInRange(txn, rangeStart, rangeEnd) {
     }
     return results;
   }
-
   return results;
 }
-
 function overrideKey(transactionId, dateISO) { return `${transactionId}_${dateISO}`; }
 function getOverride(transactionId, dateISO) { return state.overrides[overrideKey(transactionId, dateISO)] || null; }
 function getOccStatus(transactionId, dateISO) { const o = getOverride(transactionId, dateISO); return (o && o.status) || 'pending'; }
 function getOccAccountId(txn, dateISO) { const o = getOverride(txn.id, dateISO); return (o && o.accountId) || txn.accountId; }
 function getOccAmount(txn, dateISO) { const o = getOverride(txn.id, dateISO); return (o && typeof o.amount === 'number') ? o.amount : txn.amount; }
-
 function buildOccurrenceObjects(rangeStart, rangeEnd) {
   const list = [];
   state.transactions.forEach((txn) => {
@@ -477,6 +458,8 @@ function buildOccurrenceObjects(rangeStart, rangeEnd) {
         dateObj: d,
         type: txn.type,
         description: txn.description,
+        category: txn.category || 'Outros',
+        invoicedTo: txn.invoicedTo || '',
         amount: getOccAmount(txn, iso),
         accountId: getOccAccountId(txn, iso),
         status: getOccStatus(txn.id, iso),
@@ -487,7 +470,6 @@ function buildOccurrenceObjects(rangeStart, rangeEnd) {
   list.sort((a,b) => a.date.localeCompare(b.date));
   return list;
 }
-
 function computeMonthTotals(monthDate) {
   const start = startOfMonth(monthDate), end = endOfMonth(monthDate);
   const occs = buildOccurrenceObjects(start, end);
@@ -504,7 +486,6 @@ function computeMonthTotals(monthDate) {
   return { incomeConfirmed, expenseConfirmed, incomeAll, expenseAll,
     balanceConfirmed: incomeConfirmed - expenseConfirmed, balanceAll: incomeAll - expenseAll };
 }
-
 function getEarliestMonth() {
   if (state.transactions.length === 0) return startOfMonth(new Date());
   let min = null;
@@ -514,7 +495,6 @@ function getEarliestMonth() {
   });
   return min;
 }
-
 function computeAccumulated(monthDate) {
   const earliest = getEarliestMonth();
   let cursor = new Date(earliest);
@@ -529,7 +509,6 @@ function computeAccumulated(monthDate) {
   }
   return total;
 }
-
 function computeAccountBalance(accountId) {
   const account = state.accounts.find((a) => a.id === accountId);
   if (!account) return 0;
@@ -545,16 +524,13 @@ function computeAccountBalance(accountId) {
   });
   return total;
 }
-
 function isAccountInUse(accountId) {
   if (state.transactions.some((t) => t.accountId === accountId)) return true;
   return Object.values(state.overrides).some((o) => o.accountId === accountId);
 }
-
 /* ---------------- COTAÇÕES (Dólar / Euro) ---------------- */
 const RATES_CACHE_KEY = 'fincontrole_rates_cache_v1';
 const RATES_API_URL = 'https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL';
-
 function formatTime(timestampMs) {
   const lang = state.settings.language || 'pt-BR';
   try {
@@ -563,14 +539,12 @@ function formatTime(timestampMs) {
     return new Date(timestampMs).toTimeString().slice(0,5);
   }
 }
-
 function renderRates(data, isFresh) {
   const usdEl = document.getElementById('rateUSDValue');
   const eurEl = document.getElementById('rateEURValue');
   const usdArrow = document.getElementById('rateUSDArrow');
   const eurArrow = document.getElementById('rateEURArrow');
   const caption = document.getElementById('ratesCaption');
-
   if (!data) {
     usdEl.textContent = '—';
     eurEl.textContent = '—';
@@ -578,23 +552,19 @@ function renderRates(data, isFresh) {
     caption.textContent = t('rates.unavailable');
     return;
   }
-
   usdEl.textContent = formatCurrency(data.usd);
   eurEl.textContent = formatCurrency(data.eur);
   setArrow(usdArrow, data.usdChange);
   setArrow(eurArrow, data.eurChange);
-
   const timeStr = formatTime(data.timestamp);
   caption.textContent = isFresh ? t('rates.updated', { time: timeStr }) : t('rates.cachedNote', { time: timeStr });
 }
-
 function setArrow(el, change) {
   el.classList.remove('up', 'down');
   if (typeof change !== 'number' || isNaN(change) || change === 0) { el.textContent = ''; return; }
   if (change > 0) { el.textContent = '▲'; el.classList.add('up'); }
   else { el.textContent = '▼'; el.classList.add('down'); }
 }
-
 async function fetchExchangeRates() {
   const caption = document.getElementById('ratesCaption');
   caption.textContent = t('rates.loading');
@@ -622,7 +592,6 @@ async function fetchExchangeRates() {
     renderRates(cached, false);
   }
 }
-
 /* ---------------- TOAST ---------------- */
 let toastTimer = null;
 function showToast(msg) {
@@ -632,14 +601,12 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.add('hidden'), 2600);
 }
-
 /* ---------------- CONFIRM DIALOG ---------------- */
 function askConfirm(message, onOk) {
   document.getElementById('confirmMessage').textContent = message;
   ui.pendingDeleteAction = onOk;
   document.getElementById('modalConfirm').classList.remove('hidden');
 }
-
 /* ---------------- RENDER: NAV / VIEWS ---------------- */
 function switchView(view) {
   ui.currentView = view;
@@ -648,7 +615,6 @@ function switchView(view) {
   document.querySelectorAll('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
   renderAll();
 }
-
 function renderHeader() {
   const lang = state.settings.language;
   const d = new Date();
@@ -657,7 +623,6 @@ function renderHeader() {
   document.getElementById('headerDate').textContent = lang === 'en' ? `${capitalize(weekday)}, ${MONTHS.en[d.getMonth()]} ${d.getDate()}` : label;
 }
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
 function renderReminderBanner() {
   const iso = todayISO();
   const occs = buildOccurrenceObjects(todayDate(), todayDate()).filter((o) => o.status === 'pending');
@@ -670,7 +635,6 @@ function renderReminderBanner() {
     banner.classList.add('hidden');
   }
 }
-
 /* ---------------- CHART (Entradas x Saídas) ---------------- */
 function initChartDefaults() {
   if (!ui.chart.start || !ui.chart.end) {
@@ -679,14 +643,11 @@ function initChartDefaults() {
     ui.chart.end = formatISO(endOfMonth(now));
   }
 }
-
 function renderChartControls() {
   document.getElementById('chartStartDate').value = ui.chart.start;
   document.getElementById('chartEndDate').value = ui.chart.end;
-
   const wrap = document.getElementById('chartAccountChips');
   wrap.innerHTML = '';
-
   const allChip = document.createElement('button');
   allChip.className = 'chip' + (ui.chart.accountFilter === 'all' ? ' selected' : '');
   allChip.textContent = t('chart.allAccounts');
@@ -696,7 +657,6 @@ function renderChartControls() {
     renderChart();
   });
   wrap.appendChild(allChip);
-
   state.accounts.forEach((acc) => {
     const chip = document.createElement('button');
     const isSelected = ui.chart.accountFilter !== 'all' && ui.chart.accountFilter.includes(acc.id);
@@ -721,50 +681,41 @@ function renderChartControls() {
     wrap.appendChild(chip);
   });
 }
-
 function renderChart() {
   const startVal = document.getElementById('chartStartDate').value || ui.chart.start;
   const endVal = document.getElementById('chartEndDate').value || ui.chart.end;
   ui.chart.start = startVal;
   ui.chart.end = endVal;
-
   const rangeStart = parseISO(startVal);
   const rangeEnd = parseISO(endVal);
   const container = document.getElementById('chartVisual');
   const balanceEl = document.getElementById('chartPeriodBalance');
-
   if (rangeStart > rangeEnd) {
     container.innerHTML = `<div class="chart-empty-hint">${t('chart.empty')}</div>`;
     balanceEl.textContent = '';
     return;
   }
-
   const occs = buildOccurrenceObjects(rangeStart, rangeEnd).filter((o) => o.status === 'confirmed');
   const filtered = ui.chart.accountFilter === 'all'
     ? occs
     : occs.filter((o) => ui.chart.accountFilter.includes(o.accountId));
-
   let income = 0, expense = 0;
   filtered.forEach((o) => { if (o.type === 'income') income += o.amount; else expense += o.amount; });
-
   if (income === 0 && expense === 0) {
     container.innerHTML = `<div class="chart-empty-hint">${t('chart.empty')}</div>`;
     balanceEl.textContent = '';
     return;
   }
-
   const max = Math.max(income, expense, 1);
   const incomePct = Math.max(4, Math.round((income / max) * 100));
   const expensePct = Math.max(4, Math.round((expense / max) * 100));
   const incomeColor = getComputedStyle(document.body).getPropertyValue('--income').trim();
   const expenseColor = getComputedStyle(document.body).getPropertyValue('--expense').trim();
-
   const svg = `
     <svg viewBox="0 0 300 130" width="100%" height="150" role="img" aria-label="${t('chart.title')}">
       <text x="4" y="14" font-size="11" font-weight="700" fill="${incomeColor}">${t('chart.income')}</text>
       <rect x="4" y="20" width="${2.7 * incomePct}" height="26" rx="6" fill="${incomeColor}"></rect>
       <text x="${10 + 2.7 * incomePct}" y="38" font-size="12" font-weight="800" fill="${incomeColor}">${escapeXml(formatCurrency(income))}</text>
-
       <text x="4" y="72" font-size="11" font-weight="700" fill="${expenseColor}">${t('chart.expense')}</text>
       <rect x="4" y="78" width="${2.7 * expensePct}" height="26" rx="6" fill="${expenseColor}"></rect>
       <text x="${10 + 2.7 * expensePct}" y="96" font-size="12" font-weight="800" fill="${expenseColor}">${escapeXml(formatCurrency(expense))}</text>
@@ -773,17 +724,14 @@ function renderChart() {
   balanceEl.textContent = t('chart.periodBalance', { v: formatCurrency(income - expense) });
   balanceEl.style.color = (income - expense) < 0 ? expenseColor : '';
 }
-
 function escapeXml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
-
 /* ---------------- RENDER: HOME ---------------- */
 function renderHome() {
   initChartDefaults();
   renderChartControls();
   renderChart();
-
   document.getElementById('homeMonthLabel').textContent = getMonthLabel(ui.homeMonth);
   const totals = computeMonthTotals(ui.homeMonth);
   document.getElementById('monthBalanceValue').textContent = formatCurrency(totals.balanceConfirmed);
@@ -795,18 +743,15 @@ function renderHome() {
     projectedEl.textContent = '';
   }
   document.getElementById('accumulatedValue').textContent = formatCurrency(computeAccumulated(ui.homeMonth));
-
   // Today list (always real "today", independent of homeMonth navigation)
   const todayOccs = buildOccurrenceObjects(todayDate(), todayDate());
   renderEntryList('todayList', todayOccs, t('home.emptyToday'));
-
   // Upcoming 7 days (excluding today)
   const upcomingStart = addDays(todayDate(), 1);
   const upcomingEnd = addDays(todayDate(), 7);
   const upcomingOccs = buildOccurrenceObjects(upcomingStart, upcomingEnd).filter((o) => o.status === 'pending');
   renderEntryList('upcomingList', upcomingOccs, t('home.emptyUpcoming'), true);
 }
-
 function renderEntryList(elementId, occs, emptyMsg, showDate) {
   const ul = document.getElementById(elementId);
   ul.innerHTML = '';
@@ -819,7 +764,6 @@ function renderEntryList(elementId, occs, emptyMsg, showDate) {
   }
   occs.forEach((o) => ul.appendChild(buildEntryItem(o, showDate)));
 }
-
 function buildEntryItem(o, showDate) {
   const li = document.createElement('li');
   li.className = 'entry-item' + (o.status === 'confirmed' ? ' confirmed' : '');
@@ -834,6 +778,7 @@ function buildEntryItem(o, showDate) {
   const meta = document.createElement('div');
   meta.className = 'entry-meta';
   let metaText = account ? account.name : '';
+  if (o.category && o.category !== 'Outros') metaText = metaText ? `${o.category} · ${metaText}` : o.category;
   if (showDate) {
     const d = o.dateObj;
     metaText = `${d.getDate()}/${d.getMonth()+1} · ${metaText}`;
@@ -850,7 +795,6 @@ function buildEntryItem(o, showDate) {
   li.addEventListener('click', () => openOccurrenceModal(o));
   return li;
 }
-
 /* ---------------- RENDER: FLUXO ---------------- */
 function renderFluxo() {
   document.getElementById('fluxoMonthLabel').textContent = getMonthLabel(ui.fluxoMonth);
@@ -858,7 +802,6 @@ function renderFluxo() {
   document.getElementById('fluxoIncomeTotal').textContent = formatCurrency(totals.incomeConfirmed);
   document.getElementById('fluxoExpenseTotal').textContent = formatCurrency(totals.expenseConfirmed);
   document.getElementById('fluxoBalanceTotal').textContent = formatCurrency(totals.balanceConfirmed);
-
   const start = startOfMonth(ui.fluxoMonth), end = endOfMonth(ui.fluxoMonth);
   const occs = buildOccurrenceObjects(start, end);
   const ul = document.getElementById('fluxoList');
@@ -872,7 +815,6 @@ function renderFluxo() {
   }
   occs.forEach((o) => ul.appendChild(buildEntryItem(o, true)));
 }
-
 /* ---------------- RENDER: CONTAS ---------------- */
 function renderContas() {
   const ul = document.getElementById('accountList');
@@ -903,13 +845,11 @@ function renderContas() {
     ul.appendChild(li);
   });
 }
-
 /* ---------------- BLOQUEIO POR SENHA / BIOMETRIA ---------------- */
 const LOCK_STORAGE_KEY = 'fincontrole_lock_v1';
 let lockState = loadLockState();
 let pinBuffer = '';
 let biometricAvailable = false;
-
 function loadLockState() {
   try {
     const raw = localStorage.getItem(LOCK_STORAGE_KEY);
@@ -918,13 +858,11 @@ function loadLockState() {
   return { enabled: false, pinHash: null, biometricEnabled: false, credentialId: null };
 }
 function saveLockState() { localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(lockState)); }
-
 async function sha256Hex(str) {
   const enc = new TextEncoder().encode('fincontrole-pin-' + str);
   const buf = await crypto.subtle.digest('SHA-256', enc);
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
-
 function randomBytes(len) {
   const arr = new Uint8Array(len);
   crypto.getRandomValues(arr);
@@ -937,13 +875,11 @@ function base64ToBuf(b64) {
   for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
   return arr;
 }
-
 async function isPlatformAuthenticatorAvailable() {
   if (!window.PublicKeyCredential || !PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) return false;
   try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); }
   catch (e) { return false; }
 }
-
 async function registerBiometric() {
   const publicKey = {
     challenge: randomBytes(32),
@@ -957,7 +893,6 @@ async function registerBiometric() {
   const cred = await navigator.credentials.create({ publicKey });
   return bufToBase64(cred.rawId);
 }
-
 async function verifyBiometric(credentialIdB64) {
   const publicKey = {
     challenge: randomBytes(32),
@@ -968,7 +903,6 @@ async function verifyBiometric(credentialIdB64) {
   await navigator.credentials.get({ publicKey });
   return true;
 }
-
 /* ---- Tela de bloqueio (overlay) ---- */
 function showLockOverlay() {
   pinBuffer = '';
@@ -991,7 +925,6 @@ function shakeLockDots() {
   box.classList.add('shake');
   setTimeout(() => box.classList.remove('shake'), 350);
 }
-
 async function handlePinDigit(digit) {
   if (pinBuffer.length >= 4) return;
   pinBuffer += digit;
@@ -1009,7 +942,6 @@ async function handlePinDigit(digit) {
   }
 }
 function handlePinBackspace() { pinBuffer = pinBuffer.slice(0, -1); updateLockDots(); }
-
 async function tryBiometricUnlock() {
   if (!lockState.biometricEnabled || !lockState.credentialId) return;
   try {
@@ -1019,7 +951,6 @@ async function tryBiometricUnlock() {
     showToast(t('lock.biometricFailed'));
   }
 }
-
 function handleForgotPin() {
   askConfirm(t('lock.forgotConfirm'), () => {
     localStorage.removeItem(STORAGE_KEY);
@@ -1029,12 +960,10 @@ function handleForgotPin() {
     location.reload();
   });
 }
-
 function initLockScreen() {
   if (!lockState.enabled) return;
   showLockOverlay();
 }
-
 /* ---- Configuração em Ajustes ---- */
 function renderLockSettings() {
   const container = document.getElementById('lockSettingsCard');
@@ -1043,7 +972,6 @@ function renderLockSettings() {
   label.className = 'settings-label';
   label.textContent = t('settings.lock');
   container.appendChild(label);
-
   if (!lockState.enabled) {
     const p = document.createElement('p');
     p.className = 'hint-text';
@@ -1058,19 +986,16 @@ function renderLockSettings() {
     container.appendChild(btn);
     return;
   }
-
   const status = document.createElement('p');
   status.className = 'hint-text';
   status.style.marginBottom = '12px';
   status.textContent = t('lock.enabledStatus');
   container.appendChild(status);
-
   const btnChange = document.createElement('button');
   btnChange.className = 'secondary-btn full-width';
   btnChange.textContent = t('lock.change');
   btnChange.addEventListener('click', () => openSetPinModal());
   container.appendChild(btnChange);
-
   if (biometricAvailable) {
     const btnBio = document.createElement('button');
     btnBio.className = 'secondary-btn full-width';
@@ -1078,7 +1003,6 @@ function renderLockSettings() {
     btnBio.addEventListener('click', toggleBiometric);
     container.appendChild(btnBio);
   }
-
   const btnDisable = document.createElement('button');
   btnDisable.className = 'danger-btn full-width';
   btnDisable.style.marginBottom = '0';
@@ -1093,7 +1017,6 @@ function renderLockSettings() {
   });
   container.appendChild(btnDisable);
 }
-
 async function toggleBiometric() {
   if (lockState.biometricEnabled) {
     lockState.biometricEnabled = false;
@@ -1114,14 +1037,12 @@ async function toggleBiometric() {
     showToast(t('lock.biometricSetupFailed'));
   }
 }
-
 function openSetPinModal() {
   document.getElementById('fieldNewPin').value = '';
   document.getElementById('fieldConfirmPin').value = '';
   document.getElementById('modalSetPin').classList.remove('hidden');
 }
 function closeSetPinModal() { document.getElementById('modalSetPin').classList.add('hidden'); }
-
 async function saveSetPin() {
   const p1 = document.getElementById('fieldNewPin').value;
   const p2 = document.getElementById('fieldConfirmPin').value;
@@ -1135,7 +1056,6 @@ async function saveSetPin() {
   renderLockSettings();
   showToast(t('toast.saved'));
 }
-
 /* ---------------- RENDER: AJUSTES ---------------- */
 function renderAjustes() {
   renderLockSettings();
@@ -1157,7 +1077,6 @@ function renderAjustes() {
   });
   updateNotifStatusText();
 }
-
 function updateNotifStatusText() {
   const el = document.getElementById('notifStatusText');
   if (!('Notification' in window)) { el.textContent = ''; return; }
@@ -1165,7 +1084,6 @@ function updateNotifStatusText() {
   else if (state.settings.notificationsEnabled && Notification.permission === 'granted') el.textContent = t('settings.notifOn') + ' ' + t('settings.notifHint');
   else el.textContent = t('settings.notifOff');
 }
-
 /* ---------------- APPLY THEME / LANG / FONT ---------------- */
 function applyTheme() {
   document.body.setAttribute('data-theme', state.settings.theme);
@@ -1184,7 +1102,6 @@ function applyLanguage() {
     el.setAttribute('aria-label', t(el.dataset.i18nAria));
   });
 }
-
 /* ---------------- MASTER RENDER ---------------- */
 function renderAll() {
   applyLanguage();
@@ -1197,7 +1114,6 @@ function renderAll() {
   if (ui.currentView === 'ajustes') renderAjustes();
   populateAccountSelects();
 }
-
 function populateAccountSelects() {
   ['fieldAccount', 'occAccount'].forEach((id) => {
     const sel = document.getElementById(id);
@@ -1211,7 +1127,21 @@ function populateAccountSelects() {
     if (current) sel.value = current;
   });
 }
-
+/* ---------------- CATEGORIAS ---------------- */
+function populateCategorySelect(selected) {
+  const select = document.getElementById('fieldCategory');
+  if (!select) return;
+  const type = ui.currentType;
+  const cats = (state.categories[type] || []).concat(DEFAULT_CATEGORIES[type]);
+  select.innerHTML = '';
+  cats.forEach((c) => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    select.appendChild(opt);
+  });
+  if (selected && cats.includes(selected)) select.value = selected;
+}
 /* ============================================================
    MODAL: TRANSACTION (novo / editar lançamento)
    ============================================================ */
@@ -1219,12 +1149,12 @@ function openTransactionModal(existing) {
   ui.editingTransactionId = existing ? existing.id : null;
   document.getElementById('modalTransactionTitle').textContent = existing ? t('modal.editEntryTitle') : t('modal.newEntry');
   document.getElementById('btnDeleteTransaction').classList.toggle('hidden', !existing);
-
   const type = existing ? existing.type : 'income';
   setTransactionType(type);
-
   document.getElementById('fieldDescription').value = existing ? existing.description : '';
   document.getElementById('fieldAmount').value = existing ? String(existing.amount).replace('.', ',') : '';
+  populateCategorySelect(existing ? existing.category : null);
+  document.getElementById('fieldInvoicedTo').value = existing && existing.invoicedTo ? existing.invoicedTo : '';
   populateAccountSelects();
   document.getElementById('fieldAccount').value = existing ? existing.accountId : (state.accounts[0] ? state.accounts[0].id : '');
   document.getElementById('fieldDate').value = existing ? existing.date : todayISO();
@@ -1232,25 +1162,21 @@ function openTransactionModal(existing) {
   document.getElementById('fieldEndDate').value = existing && existing.endDate ? existing.endDate : '';
   document.getElementById('fieldNotes').value = existing && existing.notes ? existing.notes : '';
   toggleEndDateVisibility();
-
   document.getElementById('modalTransaction').classList.remove('hidden');
 }
-
 function setTransactionType(type) {
   ui.currentType = type;
   document.getElementById('btnTypeIncome').classList.toggle('active', type === 'income');
   document.getElementById('btnTypeExpense').classList.toggle('active', type === 'expense');
+  populateCategorySelect();
 }
-
 function toggleEndDateVisibility() {
   const freq = document.getElementById('fieldFrequency').value;
   document.getElementById('endDateWrapper').classList.toggle('hidden', freq === 'once');
 }
-
 function closeTransactionModal() {
   document.getElementById('modalTransaction').classList.add('hidden');
 }
-
 function saveTransactionFromModal() {
   if (state.accounts.length === 0) { showToast(t('toast.needAccount')); return; }
   const description = document.getElementById('fieldDescription').value.trim();
@@ -1262,13 +1188,14 @@ function saveTransactionFromModal() {
   const frequency = document.getElementById('fieldFrequency').value;
   const endDate = frequency !== 'once' ? (document.getElementById('fieldEndDate').value || null) : null;
   const notes = document.getElementById('fieldNotes').value.trim();
-
+  const category = document.getElementById('fieldCategory') ? document.getElementById('fieldCategory').value : 'Outros';
+  const invoicedTo = document.getElementById('fieldInvoicedTo') ? document.getElementById('fieldInvoicedTo').value.trim() : '';
   if (ui.editingTransactionId) {
     const txn = state.transactions.find((t) => t.id === ui.editingTransactionId);
-    Object.assign(txn, { type: ui.currentType, description, amount, accountId, date, frequency, endDate, notes });
+    Object.assign(txn, { type: ui.currentType, description, amount, accountId, date, frequency, endDate, notes, category, invoicedTo });
   } else {
     state.transactions.push({
-      id: uid(), type: ui.currentType, description, amount, accountId, date, frequency, endDate, notes,
+      id: uid(), type: ui.currentType, description, amount, accountId, date, frequency, endDate, notes, category, invoicedTo,
       createdAt: Date.now()
     });
   }
@@ -1277,7 +1204,6 @@ function saveTransactionFromModal() {
   renderAll();
   showToast(t('toast.saved'));
 }
-
 function deleteTransactionFromModal() {
   const id = ui.editingTransactionId;
   askConfirm(t('confirm.deleteTransaction'), () => {
@@ -1289,7 +1215,6 @@ function deleteTransactionFromModal() {
     showToast(t('toast.deleted'));
   });
 }
-
 /* ============================================================
    MODAL: OCCURRENCE (confirmar / detalhe do dia)
    ============================================================ */
@@ -1299,7 +1224,6 @@ function openOccurrenceModal(occ) {
   const lang = state.settings.language;
   const d = occ.dateObj;
   const dateLabel = `${capitalize(WEEKDAY_FULL[lang][d.getDay()])}, ${d.getDate()} ${MONTHS[lang][d.getMonth()]} ${d.getFullYear()}`;
-
   const details = document.getElementById('occDetails');
   details.innerHTML = '';
   const descEl = document.createElement('div'); descEl.className = 'od-desc'; descEl.textContent = occ.description;
@@ -1307,22 +1231,22 @@ function openOccurrenceModal(occ) {
   amtEl.textContent = (occ.type === 'income' ? '+ ' : '- ') + formatCurrency(occ.amount);
   const metaEl = document.createElement('div'); metaEl.className = 'od-meta'; metaEl.textContent = dateLabel;
   details.appendChild(descEl); details.appendChild(amtEl); details.appendChild(metaEl);
-
+  if (occ.category || occ.invoicedTo) {
+    const catEl = document.createElement('div'); catEl.className = 'od-meta';
+    catEl.textContent = [occ.category, occ.invoicedTo].filter(Boolean).join(' · ');
+    details.appendChild(catEl);
+  }
   document.getElementById('occAmount').value = String(occ.amount).replace('.', ',');
   populateAccountSelects();
   document.getElementById('occAccount').value = occ.accountId;
-
   const confirmBtn = document.getElementById('btnConfirmOccurrence');
   confirmBtn.textContent = occ.status === 'confirmed' ? t('modal.unconfirm') : t('modal.confirm');
   confirmBtn.className = occ.status === 'confirmed' ? 'secondary-btn' : 'primary-btn';
-
   document.getElementById('modalOccurrence').classList.remove('hidden');
 }
-
 function closeOccurrenceModal() {
   document.getElementById('modalOccurrence').classList.add('hidden');
 }
-
 function toggleOccurrenceConfirm() {
   const { transactionId, date } = ui.occContext;
   const txn = state.transactions.find((t) => t.id === transactionId);
@@ -1331,26 +1255,22 @@ function toggleOccurrenceConfirm() {
   const newStatus = currentStatus === 'confirmed' ? 'pending' : 'confirmed';
   const selectedAccount = document.getElementById('occAccount').value;
   const enteredAmount = parseAmountInput(document.getElementById('occAmount').value);
-
   const override = state.overrides[key] || {};
   override.status = newStatus;
   if (selectedAccount && selectedAccount !== txn.accountId) override.accountId = selectedAccount; else delete override.accountId;
   if (enteredAmount && enteredAmount !== txn.amount) override.amount = enteredAmount; else delete override.amount;
   state.overrides[key] = override;
-
   saveState();
   closeOccurrenceModal();
   renderAll();
   showToast(newStatus === 'confirmed' ? t('toast.confirmed') : t('toast.unconfirmed'));
 }
-
 function editTransactionFromOccurrence() {
   const { transactionId } = ui.occContext;
   const txn = state.transactions.find((t) => t.id === transactionId);
   closeOccurrenceModal();
   openTransactionModal(txn);
 }
-
 /* ============================================================
    MODAL: ACCOUNT (nova / editar conta)
    ============================================================ */
@@ -1365,7 +1285,6 @@ function openAccountModal(accountId) {
   renderColorGrid();
   document.getElementById('modalAccount').classList.remove('hidden');
 }
-
 function renderColorGrid() {
   const grid = document.getElementById('accountColorGrid');
   grid.innerHTML = '';
@@ -1377,9 +1296,7 @@ function renderColorGrid() {
     grid.appendChild(div);
   });
 }
-
 function closeAccountModal() { document.getElementById('modalAccount').classList.add('hidden'); }
-
 function saveAccountFromModal() {
   const name = document.getElementById('fieldAccountName').value.trim();
   if (!name) { showToast(t('toast.fillDescription')); return; }
@@ -1395,7 +1312,6 @@ function saveAccountFromModal() {
   renderAll();
   showToast(t('toast.saved'));
 }
-
 function deleteAccountFromModal() {
   const id = ui.editingAccountId;
   if (isAccountInUse(id)) { showToast(t('toast.accountInUse')); return; }
@@ -1407,7 +1323,6 @@ function deleteAccountFromModal() {
     showToast(t('toast.deleted'));
   });
 }
-
 /* ============================================================
    BACKUP
    ============================================================ */
@@ -1424,7 +1339,6 @@ function exportBackup() {
   URL.revokeObjectURL(url);
   showToast(t('toast.backupExported'));
 }
-
 function importBackupFile(file) {
   const reader = new FileReader();
   reader.onload = () => {
@@ -1444,7 +1358,6 @@ function importBackupFile(file) {
   };
   reader.readAsText(file);
 }
-
 /* ============================================================
    NOTIFICATIONS (best-effort)
    ============================================================ */
@@ -1461,7 +1374,6 @@ async function enableNotifications() {
   }
   updateNotifStatusText();
 }
-
 function checkAndNotifyToday() {
   if (!state.settings.notificationsEnabled) return;
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -1479,7 +1391,6 @@ function checkAndNotifyToday() {
     localStorage.setItem('fincontrole_last_notify', todayISO());
   } catch (e) { /* ignore */ }
 }
-
 /* ============================================================
    EVENTS
    ============================================================ */
@@ -1490,7 +1401,6 @@ function bindEvents() {
   document.getElementById('btnSettingsShortcut').addEventListener('click', () => switchView('ajustes'));
   document.getElementById('reminderBanner').addEventListener('click', () => switchView('inicio'));
   document.getElementById('btnRefreshRates').addEventListener('click', fetchExchangeRates);
-
   // Lock screen keypad
   document.querySelectorAll('.lock-key[data-digit]').forEach((btn) => {
     btn.addEventListener('click', () => handlePinDigit(btn.dataset.digit));
@@ -1498,21 +1408,17 @@ function bindEvents() {
   document.getElementById('btnLockBackspace').addEventListener('click', handlePinBackspace);
   document.getElementById('btnBiometricUnlock').addEventListener('click', tryBiometricUnlock);
   document.getElementById('btnForgotPin').addEventListener('click', handleForgotPin);
-
   // Set PIN modal
   document.getElementById('closeModalSetPin').addEventListener('click', closeSetPinModal);
   document.getElementById('btnSavePin').addEventListener('click', saveSetPin);
-
   // Home month nav
   document.getElementById('homePrevMonth').addEventListener('click', () => { ui.homeMonth = addMonths(ui.homeMonth, -1); renderHome(); });
   document.getElementById('homeNextMonth').addEventListener('click', () => { ui.homeMonth = addMonths(ui.homeMonth, 1); renderHome(); });
   document.getElementById('fluxoPrevMonth').addEventListener('click', () => { ui.fluxoMonth = addMonths(ui.fluxoMonth, -1); renderFluxo(); });
   document.getElementById('fluxoNextMonth').addEventListener('click', () => { ui.fluxoMonth = addMonths(ui.fluxoMonth, 1); renderFluxo(); });
-
   // Chart date range
   document.getElementById('chartStartDate').addEventListener('change', renderChart);
   document.getElementById('chartEndDate').addEventListener('change', renderChart);
-
   // New transaction buttons
   document.getElementById('btnNewTransactionHome').addEventListener('click', () => openTransactionModal(null));
   document.getElementById('btnNewTransactionFlow').addEventListener('click', () => openTransactionModal(null));
@@ -1522,18 +1428,15 @@ function bindEvents() {
   document.getElementById('fieldFrequency').addEventListener('change', toggleEndDateVisibility);
   document.getElementById('btnSaveTransaction').addEventListener('click', saveTransactionFromModal);
   document.getElementById('btnDeleteTransaction').addEventListener('click', deleteTransactionFromModal);
-
   // Occurrence modal
   document.getElementById('closeModalOccurrence').addEventListener('click', closeOccurrenceModal);
   document.getElementById('btnConfirmOccurrence').addEventListener('click', toggleOccurrenceConfirm);
   document.getElementById('btnEditTransactionFromOcc').addEventListener('click', editTransactionFromOccurrence);
-
   // Account modal
   document.getElementById('btnNewAccount').addEventListener('click', () => openAccountModal(null));
   document.getElementById('closeModalAccount').addEventListener('click', closeAccountModal);
   document.getElementById('btnSaveAccount').addEventListener('click', saveAccountFromModal);
   document.getElementById('btnDeleteAccount').addEventListener('click', deleteAccountFromModal);
-
   // Confirm dialog
   document.getElementById('btnConfirmCancel').addEventListener('click', () => document.getElementById('modalConfirm').classList.add('hidden'));
   document.getElementById('btnConfirmOk').addEventListener('click', () => {
@@ -1541,7 +1444,6 @@ function bindEvents() {
     if (ui.pendingDeleteAction) ui.pendingDeleteAction();
     ui.pendingDeleteAction = null;
   });
-
   // Settings
   document.getElementById('selectLanguage').addEventListener('change', (e) => {
     state.settings.language = e.target.value;
@@ -1563,13 +1465,11 @@ function bindEvents() {
     if (e.target.files && e.target.files[0]) importBackupFile(e.target.files[0]);
     e.target.value = '';
   });
-
   // Close modals by tapping overlay background
   document.querySelectorAll('.modal-overlay').forEach((ov) => {
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.add('hidden'); });
   });
 }
-
 /* ============================================================
    INIT
    ============================================================ */
@@ -1579,22 +1479,18 @@ function init() {
   bindEvents();
   switchView('inicio');
   checkAndNotifyToday();
-
   try {
     const cached = JSON.parse(localStorage.getItem(RATES_CACHE_KEY));
     if (cached) { ui.rates = { data: cached, fresh: false }; renderRates(cached, false); }
   } catch (e) { /* ignore */ }
   fetchExchangeRates();
-
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch(() => {});
   }
-
   initLockScreen();
   isPlatformAuthenticatorAvailable().then((v) => {
     biometricAvailable = v;
     if (ui.currentView === 'ajustes') renderLockSettings();
   });
 }
-
 document.addEventListener('DOMContentLoaded', init);
