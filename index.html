@@ -227,8 +227,22 @@
       <input type="text" id="fieldInvoicedTo" class="big-input" placeholder="Ex: Blaine Pollock, Direct Pay AG...">
       <label class="field-label" data-i18n="modal.category">Categoria</label>
       <select id="fieldCategory" class="big-select"></select>
-      <label class="field-label" data-i18n="modal.amount">Valor (R$)</label>
-      <input type="text" inputmode="decimal" id="fieldAmount" class="big-input" placeholder="0,00">
+      <label class="field-label" data-i18n="modal.amount">Valor</label>
+<input type="text" inputmode="decimal" id="fieldAmount" class="big-input" placeholder="0,00">
+
+<label class="field-label" data-i18n="modal.currency">Moeda</label>
+<select id="fieldCurrency" class="big-select">
+  <option value="BRL">BRL (R$)</option>
+  <option value="EUR">EUR (€)</option>
+  <option value="USD">USD (US$)</option>
+  <option value="CHF">CHF</option>
+  <option value="RSD">RSD</option>
+</select>
+
+<div id="amountBRLWrapper">
+  <label class="field-label" data-i18n="modal.amountBRL">Valor em R$ (conversão)</label>
+  <input type="text" inputmode="decimal" id="fieldAmountBRL" class="big-input" placeholder="0,00">
+</div>
       <label class="field-label" data-i18n="modal.account">Conta</label>
       <select id="fieldAccount" class="big-select"></select>
       <label class="field-label" data-i18n="modal.date">Data</label>
