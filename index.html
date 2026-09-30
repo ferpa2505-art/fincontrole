@@ -178,6 +178,12 @@
       </div>
 
       <div class="settings-card">
+        <label class="settings-label" data-i18n="settings.ai">Assistente com IA</label>
+        <button class="secondary-btn full-width" id="btnOpenAISuggestions" data-i18n="settings.aiButton">🤖 Sugestões com IA (Claude)</button>
+        <p class="hint-text" id="aiStatusText"></p>
+      </div>
+
+      <div class="settings-card">
         <label class="settings-label" data-i18n="settings.backup">Backup dos dados</label>
         <button class="secondary-btn full-width" id="btnExportBackup" data-i18n="settings.exportBackup">Exportar backup (salvar arquivo)</button>
         <button class="secondary-btn full-width" id="btnImportBackup" data-i18n="settings.importBackup">Importar backup</button>
@@ -331,6 +337,23 @@
 
 <div id="toast" class="toast hidden"></div>
 
+<!-- MODAL: Sugestões com IA (OmniRoute) -->
+<div class="modal-overlay hidden" id="modalAISuggestions">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 data-i18n="modal.aiSuggestions">🤖 Sugestões com IA</h3>
+      <button class="icon-btn" id="closeModalAISuggestions" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="aiSuggestionsContainer" class="ai-suggestions-container"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="secondary-btn full-width" id="btnAIAnalyzeFlow" data-i18n="modal.analyzeFlow">📊 Analisar fluxo de caixa</button>
+      <button class="secondary-btn full-width" id="btnAISuggestSavings" data-i18n="modal.suggestSavings">💰 Sugerir economia</button>
+    </div>
+  </div>
+</div>
+
 <!-- TELA DE BLOQUEIO -->
 <div class="lock-overlay hidden" id="lockOverlay">
   <div class="lock-box">
@@ -377,6 +400,7 @@
   </div>
 </div>
 
+<script src="omniroute-client.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

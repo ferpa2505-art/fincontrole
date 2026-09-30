@@ -94,6 +94,15 @@ const I18N = {
     'lock.setupTitle': 'Criar senha de 4 números',
     'lock.newPin': 'Nova senha (4 números)',
     'lock.confirmPin': 'Confirme a nova senha',
+    'settings.ai': 'Assistente com IA',
+    'settings.aiButton': '🤖 Sugestões com IA (Claude)',
+    'modal.aiSuggestions': '🤖 Sugestões com IA',
+    'modal.analyzeFlow': '📊 Analisar fluxo de caixa',
+    'modal.suggestSavings': '💰 Sugerir economia',
+    'ai.loading': 'Carregando resposta de Claude...',
+    'ai.offline': 'OmniRoute não está disponível. Verifique se Claude está rodando em localhost:20128.',
+    'ai.error': 'Erro ao chamar Claude: {error}',
+    'toast.aiSuccess': 'Sugestão recebida de Claude!',
   },
   'es': {
     'aria.settings': 'Ajustes',
@@ -179,6 +188,15 @@ const I18N = {
     'lock.setupTitle': 'Crear contraseña de 4 números',
     'lock.newPin': 'Nueva contraseña (4 números)',
     'lock.confirmPin': 'Confirma la nueva contraseña',
+    'settings.ai': 'Asistente con IA',
+    'settings.aiButton': '🤖 Sugerencias con IA (Claude)',
+    'modal.aiSuggestions': '🤖 Sugerencias con IA',
+    'modal.analyzeFlow': '📊 Analizar flujo de caja',
+    'modal.suggestSavings': '💰 Sugerir ahorro',
+    'ai.loading': 'Cargando respuesta de Claude...',
+    'ai.offline': 'OmniRoute no está disponible. Verifica si Claude se está ejecutando en localhost:20128.',
+    'ai.error': 'Error al llamar a Claude: {error}',
+    'toast.aiSuccess': '¡Sugerencia recibida de Claude!',
   },
   'en': {
     'aria.settings': 'Settings',
@@ -264,6 +282,15 @@ const I18N = {
     'lock.setupTitle': 'Create a 4-digit passcode',
     'lock.newPin': 'New passcode (4 digits)',
     'lock.confirmPin': 'Confirm new passcode',
+    'settings.ai': 'AI Assistant',
+    'settings.aiButton': '🤖 AI Suggestions (Claude)',
+    'modal.aiSuggestions': '🤖 AI Suggestions',
+    'modal.analyzeFlow': '📊 Analyze cash flow',
+    'modal.suggestSavings': '💰 Suggest savings',
+    'ai.loading': 'Loading Claude response...',
+    'ai.offline': 'OmniRoute is not available. Make sure Claude is running on localhost:20128.',
+    'ai.error': 'Error calling Claude: {error}',
+    'toast.aiSuccess': 'Suggestion received from Claude!',
   }
 };
 const MONTHS = {
@@ -1076,6 +1103,7 @@ function renderAjustes() {
     grid.appendChild(div);
   });
   updateNotifStatusText();
+  updateAIStatus();
 }
 function updateNotifStatusText() {
   const el = document.getElementById('notifStatusText');
@@ -1459,6 +1487,12 @@ function bindEvents() {
     saveState(); applyFontScale(); renderAjustes();
   });
   document.getElementById('btnEnableNotifications').addEventListener('click', enableNotifications);
+  document.getElementById('btnOpenAISuggestions').addEventListener('click', openAISuggestions);
+  document.getElementById('btnAIAnalyzeFlow').addEventListener('click', aiAnalyzeFlow);
+  document.getElementById('btnAISuggestSavings').addEventListener('click', aiSuggestSavings);
+  document.getElementById('closeModalAISuggestions').addEventListener('click', () => {
+    document.getElementById('modalAISuggestions').classList.add('hidden');
+  });
   document.getElementById('btnExportBackup').addEventListener('click', exportBackup);
   document.getElementById('btnImportBackup').addEventListener('click', () => document.getElementById('fileImportBackup').click());
   document.getElementById('fileImportBackup').addEventListener('change', (e) => {
@@ -1469,6 +1503,100 @@ function bindEvents() {
   document.querySelectorAll('.modal-overlay').forEach((ov) => {
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.add('hidden'); });
   });
+}
+/* ============================================================
+   AI Functions (OmniRoute/Claude)
+   ============================================================ */
+function openAISuggestions() {
+  const modal = document.getElementById('modalAISuggestions');
+  const container = document.getElementById('aiSuggestionsContainer');
+  container.innerHTML = '<p style="color: #666; font-size: 0.95em;">Escolha uma opção para receber sugestões de Claude sobre seus dados financeiros.</p>';
+  modal.classList.remove('hidden');
+}
+
+function updateAIStatus() {
+  if (typeof OmniRouteClient === 'undefined') {
+    document.getElementById('aiStatusText').textContent = 'OmniRoute não disponível';
+    return;
+  }
+  const statusEl = document.getElementById('aiStatusText');
+  if (window.claudeClient && window.claudeClient.isOnline) {
+    statusEl.textContent = '🟢 Claude disponível em localhost:20128';
+    statusEl.style.color = '#28a745';
+  } else {
+    statusEl.textContent = '🔴 Claude não detectado. Inicie em localhost:20128 para usar.';
+    statusEl.style.color = '#dc3545';
+  }
+}
+
+async function aiAnalyzeFlow() {
+  if (typeof OmniRouteClient === 'undefined') {
+    showToast(t('ai.offline'));
+    return;
+  }
+  
+  const container = document.getElementById('aiSuggestionsContainer');
+  container.innerHTML = '<p style="text-align: center; color: #999;"><em>' + t('ai.loading') + '</em></p>';
+  
+  try {
+    const dados = getDataForAIAnalysis();
+    const response = await window.claudeClient.analisarDados(dados);
+    container.innerHTML = '<div style="white-space: pre-wrap; font-size: 0.95em; line-height: 1.5; color: #333;">' + escapeHtml(response) + '</div>';
+    showToast(t('toast.aiSuccess'));
+  } catch (error) {
+    console.error('[FinControle] AI Error:', error);
+    container.innerHTML = '<p style="color: #dc3545;"><strong>Erro:</strong> ' + escapeHtml(error.message) + '</p>';
+    showToast(t('ai.error').replace('{error}', error.message));
+  }
+}
+
+async function aiSuggestSavings() {
+  if (typeof OmniRouteClient === 'undefined') {
+    showToast(t('ai.offline'));
+    return;
+  }
+  
+  const container = document.getElementById('aiSuggestionsContainer');
+  container.innerHTML = '<p style="text-align: center; color: #999;"><em>' + t('ai.loading') + '</em></p>';
+  
+  try {
+    const transacoes = state.transactions || [];
+    const response = await window.claudeClient.sugerirEconomia(transacoes);
+    container.innerHTML = '<div style="white-space: pre-wrap; font-size: 0.95em; line-height: 1.5; color: #333;">' + escapeHtml(response) + '</div>';
+    showToast(t('toast.aiSuccess'));
+  } catch (error) {
+    console.error('[FinControle] AI Error:', error);
+    container.innerHTML = '<p style="color: #dc3545;"><strong>Erro:</strong> ' + escapeHtml(error.message) + '</p>';
+    showToast(t('ai.error').replace('{error}', error.message));
+  }
+}
+
+function getDataForAIAnalysis() {
+  const transactions = state.transactions || [];
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
+  const monthTransactions = transactions.filter(t => {
+    const d = new Date(t.date);
+    return d >= monthStart && d <= monthEnd && t.confirmed;
+  });
+  
+  const totalEntradas = monthTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (t.amountBRL || 0), 0);
+  const totalSaidas = monthTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (t.amountBRL || 0), 0);
+  
+  return {
+    fluxoCaixa: monthTransactions.slice(0, 30),
+    totalEntradas,
+    totalSaidas,
+    contas: state.accounts || []
+  };
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 /* ============================================================
    INIT
@@ -1486,6 +1614,11 @@ function init() {
   fetchExchangeRates();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  }
+  // Initialize OmniRoute Client for AI features
+  if (typeof OmniRouteClient !== 'undefined') {
+    window.claudeClient = new OmniRouteClient();
+    updateAIStatus();
   }
   initLockScreen();
   isPlatformAuthenticatorAvailable().then((v) => {
