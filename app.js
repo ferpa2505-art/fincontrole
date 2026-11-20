@@ -90,6 +90,7 @@ const I18N = {
     'lock.forgot': 'Esqueci minha senha',
     'lock.forgotConfirm': 'Para recuperar o acesso é necessário apagar os dados deste aparelho. Se você tiver um arquivo de backup exportado, poderá importá-lo depois para recuperar as informações. Deseja continuar e apagar os dados agora?',
     'lock.wrongPin': 'Senha incorreta.',
+    'lock.lockedOut': 'Muitas tentativas. Tente novamente em {v}.',
     'lock.biometricFailed': 'Não foi possível desbloquear com digital/rosto. Tente a senha.',
     'lock.setupTitle': 'Criar senha de 4 números',
     'lock.newPin': 'Nova senha (4 números)',
@@ -175,6 +176,7 @@ const I18N = {
     'lock.forgot': 'Olvidé mi contraseña',
     'lock.forgotConfirm': 'Para recuperar el acceso es necesario borrar los datos de este dispositivo. Si tienes un archivo de copia de seguridad exportado, podrás importarlo después para recuperar la información. ¿Deseas continuar y borrar los datos ahora?',
     'lock.wrongPin': 'Contraseña incorrecta.',
+    'lock.lockedOut': 'Demasiados intentos. Inténtelo de nuevo en {v}.',
     'lock.biometricFailed': 'No fue posible desbloquear con huella/rostro. Intenta con la contraseña.',
     'lock.setupTitle': 'Crear contraseña de 4 números',
     'lock.newPin': 'Nueva contraseña (4 números)',
@@ -260,6 +262,7 @@ const I18N = {
     'lock.forgot': 'Forgot passcode',
     'lock.forgotConfirm': "To recover access you need to erase this device's data. If you have an exported backup file, you can import it afterwards to restore your information. Continue and erase the data now?",
     'lock.wrongPin': 'Incorrect passcode.',
+    'lock.lockedOut': 'Too many attempts. Try again in {v}.',
     'lock.biometricFailed': 'Could not unlock with fingerprint/face. Try the passcode.',
     'lock.setupTitle': 'Create a 4-digit passcode',
     'lock.newPin': 'New passcode (4 digits)',
@@ -336,6 +339,7 @@ function t(key, vars) {
   return str;
 }
 function uid() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 /* ---------------- DATE HELPERS ---------------- */
@@ -369,13 +373,35 @@ function formatCurrency(value) {
 function parseAmountInput(str) {
   if (!str) return 0;
   let s = String(str).trim();
+  // Remove everything except digits, comma, dot, minus
   s = s.replace(/[^0-9,.\-]/g, '');
-  // if both , and . present, assume . is thousand sep and , is decimal (pt-BR style)
-  if (s.includes(',') && s.includes('.')) {
-    s = s.replace(/\./g, '').replace(',', '.');
-  } else if (s.includes(',')) {
-    s = s.replace(',', '.');
+  if (!s) return 0;
+
+  const hasComma = s.includes(',');
+  const hasDot = s.includes('.');
+  const lastComma = s.lastIndexOf(',');
+  const lastDot = s.lastIndexOf('.');
+
+  // Heuristic: the LAST separator is the decimal separator
+  if (hasComma && hasDot) {
+    if (lastComma > lastDot) {
+      // comma is decimal (pt-BR): remove all dots, replace comma with dot
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      // dot is decimal (US): remove all commas
+      s = s.replace(/,/g, '');
+    }
+  } else if (hasComma) {
+    // Only comma: could be decimal (pt-BR) or thousands (rare alone)
+    // If comma followed by exactly 2-3 digits at end → decimal
+    if (/,\d{2,3}$/.test(s)) s = s.replace(',', '.');
+    else s = s.replace(/,/g, ''); // treat as thousands
+  } else if (hasDot) {
+    // Only dot: could be decimal (US) or thousands (pt-BR)
+    if (/\.\d{2,3}$/.test(s)) { /* keep as decimal */ }
+    else s = s.replace(/\./g, ''); // treat as thousands
   }
+
   const v = parseFloat(s);
   return isNaN(v) ? 0 : v;
 }
@@ -565,31 +591,41 @@ function setArrow(el, change) {
   if (change > 0) { el.textContent = '▲'; el.classList.add('up'); }
   else { el.textContent = '▼'; el.classList.add('down'); }
 }
-async function fetchExchangeRates() {
+async function fetchExchangeRates(maxRetries = 2) {
   const caption = document.getElementById('ratesCaption');
   caption.textContent = t('rates.loading');
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch(RATES_API_URL, { signal: controller.signal });
-    clearTimeout(timeoutId);
-    if (!res.ok) throw new Error('bad response');
-    const json = await res.json();
-    const data = {
-      usd: parseFloat(json.USDBRL.bid),
-      usdChange: parseFloat(json.USDBRL.pctChange),
-      eur: parseFloat(json.EURBRL.bid),
-      eurChange: parseFloat(json.EURBRL.pctChange),
-      timestamp: Date.now()
-    };
-    localStorage.setItem(RATES_CACHE_KEY, JSON.stringify(data));
-    ui.rates = { data, fresh: true };
-    renderRates(data, true);
-  } catch (e) {
-    let cached = null;
-    try { cached = JSON.parse(localStorage.getItem(RATES_CACHE_KEY)); } catch (e2) { /* ignore */ }
-    ui.rates = { data: cached, fresh: false };
-    renderRates(cached, false);
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(RATES_API_URL, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error('bad response');
+      const json = await res.json();
+      const data = {
+        usd: parseFloat(json.USDBRL.bid),
+        usdChange: parseFloat(json.USDBRL.pctChange),
+        eur: parseFloat(json.EURBRL.bid),
+        eurChange: parseFloat(json.EURBRL.pctChange),
+        timestamp: Date.now()
+      };
+      localStorage.setItem(RATES_CACHE_KEY, JSON.stringify(data));
+      ui.rates = { data, fresh: true };
+      renderRates(data, true);
+      return; // Success, exit early
+    } catch (e) {
+      if (attempt < maxRetries) {
+        // Wait before retry: 1s, then 2s
+        await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+        continue;
+      }
+      // All retries failed
+      let cached = null;
+      try { cached = JSON.parse(localStorage.getItem(RATES_CACHE_KEY)); } catch (e2) { /* ignore */ }
+      ui.rates = { data: cached, fresh: false };
+      renderRates(cached, false);
+    }
   }
 }
 /* ---------------- TOAST ---------------- */
@@ -853,9 +889,9 @@ let biometricAvailable = false;
 function loadLockState() {
   try {
     const raw = localStorage.getItem(LOCK_STORAGE_KEY);
-    if (raw) return Object.assign({ enabled: false, pinHash: null, biometricEnabled: false, credentialId: null }, JSON.parse(raw));
+    if (raw) return Object.assign({ enabled: false, pinHash: null, biometricEnabled: false, credentialId: null, failedAttempts: 0, lockoutUntil: 0 }, JSON.parse(raw));
   } catch (e) { /* ignore */ }
-  return { enabled: false, pinHash: null, biometricEnabled: false, credentialId: null };
+  return { enabled: false, pinHash: null, biometricEnabled: false, credentialId: null, failedAttempts: 0, lockoutUntil: 0 };
 }
 function saveLockState() { localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(lockState)); }
 async function sha256Hex(str) {
@@ -904,9 +940,35 @@ async function verifyBiometric(credentialIdB64) {
   return true;
 }
 /* ---- Tela de bloqueio (overlay) ---- */
+function getLockoutDelay(attempts) {
+  if (attempts >= 10) return 5 * 60 * 1000; // 5 minutes
+  if (attempts >= 5) return 30 * 1000; // 30 seconds
+  return 0;
+}
+
+function formatLockoutTime(ms) {
+  const totalSec = Math.ceil(ms / 1000);
+  if (totalSec >= 60) {
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    return sec > 0 ? `${min}m ${sec}s` : `${min}m`;
+  }
+  return `${totalSec}s`;
+}
+
 function showLockOverlay() {
   pinBuffer = '';
   updateLockDots();
+
+  // Check for lockout
+  const now = Date.now();
+  if (lockState.lockoutUntil > now) {
+    const remaining = lockState.lockoutUntil - now;
+    showToast(t('lock.lockedOut', formatLockoutTime(remaining)));
+    // Don't show the overlay, just show the toast - user must wait
+    return;
+  }
+
   document.getElementById('lockOverlay').classList.remove('hidden');
   document.getElementById('btnBiometricUnlock').classList.toggle('hidden', !lockState.biometricEnabled);
   const appEl = document.getElementById('app');
@@ -926,26 +988,71 @@ function shakeLockDots() {
   setTimeout(() => box.classList.remove('shake'), 350);
 }
 async function handlePinDigit(digit) {
+  // Check for lockout before processing
+  const now = Date.now();
+  if (lockState.lockoutUntil > now) {
+    const remaining = lockState.lockoutUntil - now;
+    showToast(t('lock.lockedOut', formatLockoutTime(remaining)));
+    return;
+  }
+
   if (pinBuffer.length >= 4) return;
   pinBuffer += digit;
   updateLockDots();
   if (pinBuffer.length === 4) {
     const hash = await sha256Hex(pinBuffer);
     if (hash === lockState.pinHash) {
+      // Success - reset failed attempts
+      if (lockState.failedAttempts > 0) {
+        lockState.failedAttempts = 0;
+        lockState.lockoutUntil = 0;
+        saveLockState();
+      }
       hideLockOverlay();
       pinBuffer = '';
     } else {
-      shakeLockDots();
-      showToast(t('lock.wrongPin'));
-      setTimeout(() => { pinBuffer = ''; updateLockDots(); }, 350);
+      // Failed attempt
+      lockState.failedAttempts++;
+      const delay = getLockoutDelay(lockState.failedAttempts);
+      if (delay > 0) {
+        lockState.lockoutUntil = Date.now() + delay;
+        saveLockState();
+        shakeLockDots();
+        showToast(t('lock.lockedOut', formatLockoutTime(delay)));
+        // Hide overlay during lockout
+        setTimeout(() => {
+          document.getElementById('lockOverlay').classList.add('hidden');
+          const appEl = document.getElementById('app');
+          if ('inert' in appEl) appEl.inert = false;
+        }, 350);
+      } else {
+        shakeLockDots();
+        showToast(t('lock.wrongPin'));
+        saveLockState();
+        setTimeout(() => { pinBuffer = ''; updateLockDots(); }, 350);
+      }
     }
   }
 }
 function handlePinBackspace() { pinBuffer = pinBuffer.slice(0, -1); updateLockDots(); }
 async function tryBiometricUnlock() {
+  // Check for lockout before processing
+  const now = Date.now();
+  if (lockState.lockoutUntil > now) {
+    const remaining = lockState.lockoutUntil - now;
+    showToast(t('lock.lockedOut', formatLockoutTime(remaining)));
+    return;
+  }
+
   if (!lockState.biometricEnabled || !lockState.credentialId) return;
   try {
     await verifyBiometric(lockState.credentialId);
+    // Success - reset failed attempts
+    if (lockState.failedAttempts > 0) {
+      lockState.failedAttempts = 0;
+      lockState.lockoutUntil = 0;
+      saveLockState();
+    }
     hideLockOverlay();
   } catch (e) {
     showToast(t('lock.biometricFailed'));
@@ -962,6 +1069,15 @@ function handleForgotPin() {
 }
 function initLockScreen() {
   if (!lockState.enabled) return;
+
+  // Check for lockout before showing overlay
+  const now = Date.now();
+  if (lockState.lockoutUntil > now) {
+    const remaining = lockState.lockoutUntil - now;
+    showToast(t('lock.lockedOut', formatLockoutTime(remaining)));
+    return;
+  }
+
   showLockOverlay();
 }
 /* ---- Configuração em Ajustes ---- */
