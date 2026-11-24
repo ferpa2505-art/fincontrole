@@ -377,6 +377,36 @@ main#main { padding: 18px; flex: 1; }
 .entry-check.done { background: var(--income); border-color: var(--income); color: var(--income-text, #fff); }
 .empty-hint { color: var(--text-muted); padding: 10px 4px; }
 
+/* FLUXO SEARCH */
+.fluxo-search { margin-bottom: 16px; }
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-input-wrapper svg {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.search-input-wrapper .big-input {
+  padding-left: 48px;
+  padding-right: 48px;
+}
+.search-clear {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+.search-clear:hover { color: var(--text); }
+
 /* TOTALS ROW (fluxo) */
 .totals-row { display: flex; gap: 10px; margin-bottom: 18px; }
 .totals-box {
@@ -462,6 +492,9 @@ main#main { padding: 18px; flex: 1; }
 .nav-btn.active { color: var(--primary); }
 body[data-theme="noite"] .nav-btn.active,
 body[data-theme="contraste"] .nav-btn.active { color: var(--accent); }
+/* Better active indicator for accessibility */
+.nav-btn.active svg { stroke-width: 3; }
+.nav-btn:focus-visible { background: var(--surface-2); border-radius: 8px; }
 
 /* MODAL */
 .modal-overlay {
@@ -531,10 +564,36 @@ body[data-theme="contraste"] .nav-btn.active { color: var(--accent); }
   box-shadow: 0 6px 18px rgba(0,0,0,0.25);
 }
 
-/* Focus visibility for accessibility */
+/* Focus visibility for accessibility - use high-contrast focus ring */
+:root {
+  --focus-ring: #0055AA; /* High contrast blue, works on all themes */
+}
+body[data-theme="contraste"] { --focus-ring: #F5D93A; }
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+/* EMPTY STATES */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  gap: 16px;
+}
+.empty-illustration {
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+}
+.empty-title {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 1.05em;
 }
 
 @media (prefers-reduced-motion: reduce) {
