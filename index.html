@@ -2,8 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1F4D3D">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self' https://api.awesomeapi.com.br; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
 <title>FinControle</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -90,6 +91,18 @@
 
         <div class="chart-visual" id="chartVisual"></div>
         <div class="chart-period-balance" id="chartPeriodBalance"></div>
+        <div class="empty-state hidden" id="chartEmptyState">
+          <svg viewBox="0 0 200 200" class="empty-illustration" aria-hidden="true">
+            <rect x="10" y="10" width="180" height="180" rx="12" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+            <path d="M40 140 L40 70 L70 70 L70 90 L100 90 L100 60 L130 60 L130 80 L160 80 L160 140" fill="none" stroke="var(--color-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"/>
+            <circle cx="40" cy="140" r="5" fill="var(--color-primary)"/>
+            <circle cx="70" cy="90" r="5" fill="var(--color-primary)"/>
+            <circle cx="100" cy="60" r="5" fill="var(--color-primary)"/>
+            <circle cx="130" cy="80" r="5" fill="var(--color-primary)"/>
+            <circle cx="160" cy="140" r="5" fill="var(--color-primary)"/>
+          </svg>
+          <p class="empty-title" data-i18n="chart.empty">Sem lançamentos confirmados neste período.</p>
+        </div>
       </div>
 
       <button class="primary-btn full-width" id="btnNewTransactionHome">
@@ -98,9 +111,33 @@
 
       <h2 class="section-title" data-i18n="home.today">Hoje</h2>
       <ul class="entry-list" id="todayList"></ul>
+      <div class="empty-state hidden" id="todayEmptyState">
+        <svg viewBox="0 0 200 200" class="empty-illustration" aria-hidden="true">
+          <rect x="10" y="10" width="180" height="180" rx="12" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+          <circle cx="100" cy="75" r="30" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4 4"/>
+          <path d="M100 75 L100 55" stroke="var(--color-primary)" stroke-width="3" stroke-linecap="round"/>
+          <path d="M100 75 L115 75" stroke="var(--color-primary)" stroke-width="3" stroke-linecap="round"/>
+          <path d="M85 130 Q100 145 115 130" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <p class="empty-title" data-i18n="home.emptyToday">Nada previsto para hoje.</p>
+      </div>
 
       <h2 class="section-title" data-i18n="home.upcoming">Próximos dias</h2>
       <ul class="entry-list" id="upcomingList"></ul>
+      <div class="empty-state hidden" id="upcomingEmptyState">
+        <svg viewBox="0 0 200 200" class="empty-illustration" aria-hidden="true">
+          <rect x="10" y="10" width="180" height="180" rx="12" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+          <rect x="45" y="50" width="110" height="80" rx="8" fill="var(--surface-3)" stroke="var(--border)" stroke-width="1"/>
+          <rect x="60" y="65" width="40" height="6" rx="3" fill="var(--text-muted)" opacity="0.5"/>
+          <rect x="60" y="80" width="80" height="4" rx="2" fill="var(--text-muted)" opacity="0.3"/>
+          <rect x="60" y="95" width="60" height="4" rx="2" fill="var(--text-muted)" opacity="0.3"/>
+          <rect x="45" y="145" width="110" height="8" rx="4" fill="var(--color-primary)" opacity="0.2"/>
+          <circle cx="75" cy="149" r="3" fill="var(--color-primary)"/>
+          <circle cx="100" cy="149" r="3" fill="var(--color-primary)"/>
+          <circle cx="125" cy="149" r="3" fill="var(--color-primary)"/>
+        </svg>
+        <p class="empty-title" data-i18n="home.emptyUpcoming">Nada previsto para os próximos dias.</p>
+      </div>
     </section>
 
     <!-- FLUXO DE CAIXA -->
@@ -130,7 +167,28 @@
         <span class="plus">+</span> <span data-i18n="home.newEntry">Novo lançamento</span>
       </button>
 
+      <div class="fluxo-search" id="fluxoSearchWrapper">
+        <label class="field-label" data-i18n="flow.search">Filtrar lançamentos</label>
+        <div class="search-input-wrapper">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="search" id="fluxoSearchInput" class="big-input" placeholder="" data-i18n-placeholder="flow.searchPlaceholder" autocomplete="off">
+          <button type="button" class="search-clear" id="fluxoSearchClear" aria-label="Limpar busca" hidden>✕</button>
+        </div>
+      </div>
+
       <ul class="entry-list" id="fluxoList"></ul>
+      <div class="empty-state hidden" id="fluxoEmptyState">
+        <svg viewBox="0 0 200 200" class="empty-illustration" aria-hidden="true">
+          <rect x="10" y="10" width="180" height="180" rx="12" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+          <path d="M40 140 L40 70 L70 70 L70 90 L100 90 L100 60 L130 60 L130 80 L160 80 L160 140" fill="none" stroke="var(--color-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"/>
+          <circle cx="40" cy="140" r="5" fill="var(--color-primary)"/>
+          <circle cx="70" cy="90" r="5" fill="var(--color-primary)"/>
+          <circle cx="100" cy="60" r="5" fill="var(--color-primary)"/>
+          <circle cx="130" cy="80" r="5" fill="var(--color-primary)"/>
+          <circle cx="160" cy="140" r="5" fill="var(--color-primary)"/>
+        </svg>
+        <p class="empty-title" data-i18n="flow.empty">Nenhum lançamento encontrado.</p>
+      </div>
     </section>
 
     <!-- CONTAS -->
@@ -140,6 +198,20 @@
         <span class="plus">+</span> <span data-i18n="accounts.new">Nova conta</span>
       </button>
       <ul class="account-list" id="accountList"></ul>
+      <div class="empty-state hidden" id="accountsEmptyState">
+        <svg viewBox="0 0 200 200" class="empty-illustration" aria-hidden="true">
+          <rect x="10" y="10" width="180" height="180" rx="12" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1"/>
+          <rect x="50" y="60" width="100" height="60" rx="8" fill="var(--surface-3)" stroke="var(--border)" stroke-width="1"/>
+          <rect x="65" y="75" width="30" height="6" rx="3" fill="var(--text-muted)" opacity="0.5"/>
+          <rect x="65" y="90" width="70" height="4" rx="2" fill="var(--text-muted)" opacity="0.3"/>
+          <rect x="65" y="105" width="50" height="4" rx="2" fill="var(--text-muted)" opacity="0.3"/>
+          <rect x="50" y="135" width="100" height="8" rx="4" fill="var(--color-primary)" opacity="0.2"/>
+          <circle cx="75" cy="139" r="3" fill="var(--color-primary)"/>
+          <circle cx="100" cy="139" r="3" fill="var(--color-primary)"/>
+          <circle cx="125" cy="139" r="3" fill="var(--color-primary)"/>
+        </svg>
+        <p class="empty-title" data-i18n="accounts.empty">Nenhuma conta cadastrada.</p>
+      </div>
     </section>
 
     <!-- AJUSTES -->
@@ -160,6 +232,14 @@
       <div class="settings-card">
         <label class="settings-label" data-i18n="settings.theme">Tema de cores</label>
         <div class="theme-grid" id="themeGrid"></div>
+        <div class="auto-theme-toggle">
+          <label class="checkbox-wrapper">
+            <input type="checkbox" id="autoThemeToggle" aria-describedby="autoThemeHint">
+            <span class="checkbox-custom"></span>
+            <span data-i18n="settings.autoTheme">Detecção automática (tema do sistema)</span>
+          </label>
+          <p class="hint-text" id="autoThemeHint" data-i18n="settings.autoThemeHint">Quando ativado, o app segue o tema claro/escuro do seu sistema operacional.</p>
+        </div>
       </div>
 
       <div class="settings-card">
@@ -180,9 +260,14 @@
       <div class="settings-card">
         <label class="settings-label" data-i18n="settings.backup">Backup dos dados</label>
         <button class="secondary-btn full-width" id="btnExportBackup" data-i18n="settings.exportBackup">Exportar backup (salvar arquivo)</button>
+        <button class="secondary-btn full-width" id="btnExportCSV" data-i18n="settings.exportCSV">Exportar CSV</button>
         <button class="secondary-btn full-width" id="btnImportBackup" data-i18n="settings.importBackup">Importar backup</button>
         <input type="file" id="fileImportBackup" accept="application/json" class="hidden">
         <p class="hint-text" data-i18n="settings.backupHint">Guarde o arquivo de backup em local seguro. Ele é a única forma de recuperar seus dados se trocar de celular.</p>
+      </div>
+      <div class="settings-card">
+        <label class="settings-label" data-i18n="settings.manageCategories">Gerenciar categorias</label>
+        <button class="secondary-btn full-width" id="btnManageCategories" data-i18n="settings.manageCategories">Categorias personalizadas</button>
       </div>
     </section>
 
@@ -222,16 +307,16 @@
         <button class="type-btn expense" id="btnTypeExpense" data-i18n="modal.expense">Saída (pagamento)</button>
       </div>
       <label class="field-label" data-i18n="modal.description">Descrição</label>
-      <input type="text" id="fieldDescription" class="big-input" placeholder="Ex: Salário, Aluguel, Luz...">
+      <input type="text" id="fieldDescription" class="big-input" placeholder="Ex: Salário, Aluguel, Luz..." autocomplete="off">
       <label class="field-label" data-i18n="modal.invoicedTo">Faturado para (cliente)</label>
-      <input type="text" id="fieldInvoicedTo" class="big-input" placeholder="Ex: Blaine Pollock, Direct Pay AG...">
+      <input type="text" id="fieldInvoicedTo" class="big-input" placeholder="Ex: Blaine Pollock, Direct Pay AG..." autocomplete="off">
       <label class="field-label" data-i18n="modal.category">Categoria</label>
-      <select id="fieldCategory" class="big-select"></select>
+      <select id="fieldCategory" class="big-select" autocomplete="off"></select>
       <label class="field-label" data-i18n="modal.amount">Valor</label>
-<input type="text" inputmode="decimal" id="fieldAmount" class="big-input" placeholder="0,00">
+<input type="text" inputmode="decimal" id="fieldAmount" class="big-input" placeholder="0,00" autocomplete="off">
 
 <label class="field-label" data-i18n="modal.currency">Moeda</label>
-<select id="fieldCurrency" class="big-select">
+<select id="fieldCurrency" class="big-select" autocomplete="off">
   <option value="BRL">BRL (R$)</option>
   <option value="EUR">EUR (€)</option>
   <option value="USD">USD (US$)</option>
@@ -241,14 +326,14 @@
 
 <div id="amountBRLWrapper">
   <label class="field-label" data-i18n="modal.amountBRL">Valor em R$ (conversão)</label>
-  <input type="text" inputmode="decimal" id="fieldAmountBRL" class="big-input" placeholder="0,00">
+  <input type="text" inputmode="decimal" id="fieldAmountBRL" class="big-input" placeholder="0,00" autocomplete="off" readonly>
 </div>
       <label class="field-label" data-i18n="modal.account">Conta</label>
-      <select id="fieldAccount" class="big-select"></select>
+      <select id="fieldAccount" class="big-select" autocomplete="off"></select>
       <label class="field-label" data-i18n="modal.date">Data</label>
-      <input type="date" id="fieldDate" class="big-input">
+      <input type="date" id="fieldDate" class="big-input" autocomplete="off">
       <label class="field-label" data-i18n="modal.frequency">Frequência</label>
-      <select id="fieldFrequency" class="big-select">
+      <select id="fieldFrequency" class="big-select" autocomplete="off">
         <option value="once" data-i18n="freq.once">Não se repete</option>
         <option value="daily" data-i18n="freq.daily">Repete todo dia</option>
         <option value="weekly" data-i18n="freq.weekly">Repete toda semana</option>
@@ -257,10 +342,10 @@
       </select>
       <div id="endDateWrapper">
         <label class="field-label" data-i18n="modal.endDate">Repetir até (opcional)</label>
-        <input type="date" id="fieldEndDate" class="big-input">
+        <input type="date" id="fieldEndDate" class="big-input" autocomplete="off">
       </div>
       <label class="field-label" data-i18n="modal.notes">Observações (opcional)</label>
-      <input type="text" id="fieldNotes" class="big-input">
+      <input type="text" id="fieldNotes" class="big-input" autocomplete="off">
     </div>
     <div class="modal-footer">
       <button class="danger-btn hidden" id="btnDeleteTransaction" data-i18n="modal.delete">Excluir</button>
@@ -341,18 +426,18 @@
     </div>
     <button class="secondary-btn full-width hidden" id="btnBiometricUnlock" data-i18n="lock.useBiometric">Desbloquear com digital ou rosto</button>
     <div class="lock-keypad">
-      <button class="lock-key" data-digit="1">1</button>
-      <button class="lock-key" data-digit="2">2</button>
-      <button class="lock-key" data-digit="3">3</button>
-      <button class="lock-key" data-digit="4">4</button>
-      <button class="lock-key" data-digit="5">5</button>
-      <button class="lock-key" data-digit="6">6</button>
-      <button class="lock-key" data-digit="7">7</button>
-      <button class="lock-key" data-digit="8">8</button>
-      <button class="lock-key" data-digit="9">9</button>
-      <button class="lock-key lock-key-empty" tabindex="-1"></button>
-      <button class="lock-key" data-digit="0">0</button>
-      <button class="lock-key" id="btnLockBackspace" aria-label="Apagar">⌫</button>
+      <button class="lock-key" data-digit="1" aria-label="Dígito 1">1</button>
+      <button class="lock-key" data-digit="2" aria-label="Dígito 2">2</button>
+      <button class="lock-key" data-digit="3" aria-label="Dígito 3">3</button>
+      <button class="lock-key" data-digit="4" aria-label="Dígito 4">4</button>
+      <button class="lock-key" data-digit="5" aria-label="Dígito 5">5</button>
+      <button class="lock-key" data-digit="6" aria-label="Dígito 6">6</button>
+      <button class="lock-key" data-digit="7" aria-label="Dígito 7">7</button>
+      <button class="lock-key" data-digit="8" aria-label="Dígito 8">8</button>
+      <button class="lock-key" data-digit="9" aria-label="Dígito 9">9</button>
+      <button class="lock-key lock-key-empty" tabindex="-1" aria-hidden="true"></button>
+      <button class="lock-key" data-digit="0" aria-label="Dígito 0">0</button>
+      <button class="lock-key" id="btnLockBackspace" aria-label="Apagar último dígito">⌫</button>
     </div>
     <button class="lock-forgot" id="btnForgotPin" data-i18n="lock.forgot">Esqueci minha senha</button>
   </div>

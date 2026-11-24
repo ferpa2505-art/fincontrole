@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fincontrole-v2';
+const CACHE_NAME = 'fincontrole-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,18 @@ const ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
+
+// Origins that are safe to cache (same-origin only)
+const ALLOWED_ORIGINS = [location.origin];
+
+function isAllowedOrigin(url) {
+  try {
+    const u = new URL(url);
+    return ALLOWED_ORIGINS.includes(u.origin);
+  } catch {
+    return false;
+  }
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -28,13 +40,27 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   // Network-first: always try to get the freshest version when online.
   // Falls back to the last cached copy only when there's no connection.
+  // Skip caching cross-origin requests (e.g., Google Fonts) to avoid opaque response pollution
+  if (!isAllowedOrigin(event.request.url)) {
+    return fetch(event.request).catch(() => caches.match(event.request));
+  }
   event.respondWith(
     fetch(event.request).then((response) => {
       if (response && response.status === 200 && response.type === 'basic') {
         const clone = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
       }
-      return response;
+      // Add security headers to responses
+      const headers = new Headers(response.headers);
+      headers.set('X-Content-Type-Options', 'nosniff');
+      headers.set('X-Frame-Options', 'DENY');
+      headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+      headers.set('Permissions-Policy', 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()');
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: headers
+      });
     }).catch(() => caches.match(event.request))
   );
 });
